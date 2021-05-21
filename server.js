@@ -14,24 +14,25 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
   if (url === "/message" && method === "POST") {
-    // For an event listener, ON allows us to listener to data as a request,
-    // and we want to push it to an empty array to have access to it later
     const body = [];
     req.on("data", (chunk) => {
       console.log(chunk);
       body.push(chunk);
     });
 
-    // End event is gonna be fired after the first one is done.
-    req.on("end", () => {
+    // We're using return here to allow our code to run after we get that data from our event listener
+    return req.on("end", () => {
       const parsedBody = Buffer.concat(body).toString();
       const message = parsedBody.split("=")[1];
-      fs.writeFileSync("message.txt", message);
+      // the . writeFileSync doesn't allow other code to run until is done
+      // Is better to use writeFile. 
+      fs.writeFile("message.txt", message, (error) => {
+        // after we're done writing the file this will get fired
+        res.statusCode = 302;
+        res.setHeader("Location", "/");
+        return res.end();
+      });
     });
-
-    res.statusCode = 302;
-    res.setHeader("Location", "/");
-    return res.end();
   }
   res.setHeader("Content-Type", "text/html");
   res.write("<html>");
